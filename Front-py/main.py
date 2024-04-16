@@ -6,31 +6,31 @@ import psutil
 import sqlite3
 from datetime import datetime
 import time 
-# تنظیمات ضبط صفحه نمایش
+#setting record view
 bounding_box = {'top': 0, 'left': 0, 'width': 1366, 'height': 768}
 
-# پیدا کردن مسیر فعلی فایل main.py
+#search file main.py
 current_directory = os.path.dirname(os.path.abspath(__file__))
 
-# مسیر دایرکتوری برنامه
+# path dirctory app
 directory = os.path.join(current_directory, 'screenshots_and_videos')
 os.makedirs(directory, exist_ok=True)
 
-# شماره بار اجرای برنامه
+# number bar app
 run_number = 1
 
-# پیدا کردن آخرین شماره بار اجرا شده
+# search app end
 while os.path.exists(os.path.join(directory, f'run-{run_number}')):
     run_number += 1
 
-# ایجاد دایرکتوری برای اجرای فعلی
+# creat foolder now
 run_folder = os.path.join(directory, f'run-{run_number}')
 os.makedirs(run_folder)
 
-# ایجاد شیء برای ضبط صفحه نمایش
+# creat class this record
 sct = mss()
 
-# تنظیمات خروجی ویدیو
+# setting output video
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 video_path = os.path.join(run_folder, 'output.mp4')
 out = cv2.VideoWriter(video_path, fourcc, 0.5, (bounding_box['width'], bounding_box['height']))
