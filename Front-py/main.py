@@ -2,12 +2,16 @@ import os
 import cv2
 from mss import mss
 import numpy as np
+import subprocess
 
 # تنظیمات ضبط صفحه نمایش
 bounding_box = {'top': 0, 'left': 0, 'width': 1366, 'height': 768}
 
+# پیدا کردن مسیر فعلی فایل main.py
+current_directory = os.path.dirname(os.path.abspath(__file__))
+
 # مسیر دایرکتوری برنامه
-directory = 'screenshots_and_videos'
+directory = os.path.join(current_directory, 'screenshots_and_videos')
 os.makedirs(directory, exist_ok=True)
 
 # شماره بار اجرای برنامه
@@ -34,7 +38,8 @@ while True:
     sct_img = sct.shot(mon=-1)
 
     # تبدیل تصویر از مسیر فایل به آرایه numpy
-    frame = cv2.imread(sct_img)
+    img = cv2.imread(sct_img)
+    frame = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # نمایش تصویر در پنجره
     cv2.imshow('Screen Capture', frame)
@@ -53,3 +58,7 @@ while True:
 # پاکسازی منابع
 out.release()
 cv2.destroyAllWindows()
+
+# تبدیل ویدیو به فرمت قابل پخش توسط تمام پلیرها
+converted_video_path = os.path.join(run_folder, 'output_converted.mp4')
+subprocess.run(['ffmpeg', '-i', video_path, '-vf', 'setpts=1.0*PTS', converted_video_path])
