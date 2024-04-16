@@ -3,8 +3,9 @@ import cv2
 from mss import mss
 import subprocess
 import psutil
-import time
-
+import sqlite3
+from datetime import datetime
+import time 
 # تنظیمات ضبط صفحه نمایش
 bounding_box = {'top': 0, 'left': 0, 'width': 1366, 'height': 768}
 
@@ -32,14 +33,29 @@ sct = mss()
 # تنظیمات خروجی ویدیو
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 video_path = os.path.join(run_folder, 'output.mp4')
-out = cvVideoWriter(video_path, fourcc, 0.5, (bounding_box['width'], bounding_box['height']))
+out = cv2.VideoWriter(video_path, fourcc, 0.5, (bounding_box['width'], bounding_box['height']))
 
 chrome_process_name = "chrome.exe"
 chrome_running = False
 
-try:2.
+# Create or connect to SQLite database file
+db_folder = os.path.join(current_directory, 'db')
+os.makedirs(db_folder, exist_ok=True)
+db_path = os.path.join(db_folder, 'screen_capture_data.db')
+conn = sqlite3.connect(db_path)
+cursor = conn.cursor()
+
+try:
+    # Create table if it does not exist
+    cursor.execute('''CREATE TABLE IF NOT EXISTS screen_capture_data (
+                        id INTEGER PRIMARY KEY,
+                        image_path TEXT NOT NULL,
+                        video_path TEXT NOT NULL,
+                        timestamp TEXT NOT NULL
+                    )''')
+
     while True:
-        # بررسی آیا Chrome در حال اجراست
+        # Check if Chrome is running
         for proc in psutil.process_iter(['pid', 'name']):
             if chrome_process_name in proc.info['name']:
                 chrome_running = True
@@ -48,36 +64,43 @@ try:2.
             chrome_running = False
 
         if chrome_running:
-            # ضبط تصویر از صفحه نمایش
+            # Capture screen image
             sct_img = sct.shot(mon=-1)
-
             frame = cv2.cvtColor(cv2.imread(sct_img), cv2.COLOR_BGR2RGB)
 
-            # نمایش تصویر در پنجره
+            # Display the captured frame
             cv2.imshow('Screen Capture', frame)
 
-            # ذخیره تصویر در فایل ویدیو
+            # Write the frame to the video output
             out.write(frame)
-
-            # ذخیره تصویر در فایل عکس
-            image_path = os.path.join(run_folder, f'image-{run_number:02d}.png')
-            cv2.imwrite(image_path, frame)
 
         else:
             print("Chrome is not running. Exiting...")
             break
 
-        # بررسی برای خروج با کلید 'q'
+        # Check for 'q' key press to exit
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-        time.sleep(1)
+        time.sleep(1)  # استفاده از ماژول time برای تأخیر
 
 finally:
-    # پاکسازی منابع
+    # Save the last captured frame as an image file
+    last_image_path = os.path.join(run_folder, f'last_image.png')
+    cv2.imwrite(last_image_path, frame)
+
+    # Update the database with the last image and video paths
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute('INSERT INTO screen_capture_data (image_path, video_path, timestamp) VALUES (?, ?, ?)', (last_image_path, video_path, timestamp))
+
+    # Commit changes and close the database connection
+    conn.commit()
+    conn.close()
+
+    # Release resources
     out.release()
     cv2.destroyAllWindows()
 
-    # تبدیل ویدیو به فرمت قابل پخش توسط تمام پلیرها
+    # Convert video to a playable format by all players
     converted_video_path = os.path.join(run_folder, 'output_converted.mp4')
     subprocess.run(['ffmpeg', '-i', video_path, '-vf', 'setpts=1.0*PTS', converted_video_path])
