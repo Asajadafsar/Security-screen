@@ -1,8 +1,9 @@
 import os
 import cv2
 from mss import mss
-import numpy as np
 import subprocess
+import psutil
+import time
 
 # تنظیمات ضبط صفحه نمایش
 bounding_box = {'top': 0, 'left': 0, 'width': 1366, 'height': 768}
@@ -31,34 +32,52 @@ sct = mss()
 # تنظیمات خروجی ویدیو
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 video_path = os.path.join(run_folder, 'output.mp4')
-out = cv2.VideoWriter(video_path, fourcc, 20.0, (bounding_box['width'], bounding_box['height']))
+out = cvVideoWriter(video_path, fourcc, 0.5, (bounding_box['width'], bounding_box['height']))
 
-while True:
-    # ضبط تصویر از صفحه نمایش
-    sct_img = sct.shot(mon=-1)
+chrome_process_name = "chrome.exe"
+chrome_running = False
 
-    # تبدیل تصویر از مسیر فایل به آرایه numpy
-    img = cv2.imread(sct_img)
-    frame = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+try:2.
+    while True:
+        # بررسی آیا Chrome در حال اجراست
+        for proc in psutil.process_iter(['pid', 'name']):
+            if chrome_process_name in proc.info['name']:
+                chrome_running = True
+                break
+        else:
+            chrome_running = False
 
-    # نمایش تصویر در پنجره
-    cv2.imshow('Screen Capture', frame)
+        if chrome_running:
+            # ضبط تصویر از صفحه نمایش
+            sct_img = sct.shot(mon=-1)
 
-    # ذخیره تصویر در فایل ویدیو
-    out.write(frame)
+            frame = cv2.cvtColor(cv2.imread(sct_img), cv2.COLOR_BGR2RGB)
 
-    # ذخیره تصویر در فایل عکس
-    image_path = os.path.join(run_folder, f'image-{run_number:02d}.png')
-    cv2.imwrite(image_path, frame)
+            # نمایش تصویر در پنجره
+            cv2.imshow('Screen Capture', frame)
 
-    # بررسی برای خروج با کلید 'q'
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+            # ذخیره تصویر در فایل ویدیو
+            out.write(frame)
 
-# پاکسازی منابع
-out.release()
-cv2.destroyAllWindows()
+            # ذخیره تصویر در فایل عکس
+            image_path = os.path.join(run_folder, f'image-{run_number:02d}.png')
+            cv2.imwrite(image_path, frame)
 
-# تبدیل ویدیو به فرمت قابل پخش توسط تمام پلیرها
-converted_video_path = os.path.join(run_folder, 'output_converted.mp4')
-subprocess.run(['ffmpeg', '-i', video_path, '-vf', 'setpts=1.0*PTS', converted_video_path])
+        else:
+            print("Chrome is not running. Exiting...")
+            break
+
+        # بررسی برای خروج با کلید 'q'
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+        time.sleep(1)
+
+finally:
+    # پاکسازی منابع
+    out.release()
+    cv2.destroyAllWindows()
+
+    # تبدیل ویدیو به فرمت قابل پخش توسط تمام پلیرها
+    converted_video_path = os.path.join(run_folder, 'output_converted.mp4')
+    subprocess.run(['ffmpeg', '-i', video_path, '-vf', 'setpts=1.0*PTS', converted_video_path])
