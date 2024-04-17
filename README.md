@@ -1,4 +1,4 @@
-Certainly, here's the updated README with a section for installing required packages using a `requirements.txt` file:
+
 
 ---
 
