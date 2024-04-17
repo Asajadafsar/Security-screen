@@ -3,4 +3,6 @@ pip install numpy
 pip install pillow
 pip install DateTime
 pip install psutil
+pip install websockets
+pip install asyncio
 #vpn this ip iran 
